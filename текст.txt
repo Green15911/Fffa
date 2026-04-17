@@ -1,0 +1,126 @@
+USE master;
+GO
+
+CREATE DATABASE TourOperatorDB;
+GO
+
+USE TourOperatorDB;
+GO
+
+-- 1. Направления (города/страны)
+CREATE TABLE Directions (
+    DirectionID INT IDENTITY(1,1) PRIMARY KEY,
+    Country NVARCHAR(100) NOT NULL,
+    City NVARCHAR(100) NOT NULL,
+    Description NVARCHAR(255) NULL
+);
+
+-- 2. Отели
+CREATE TABLE Hotels (
+    HotelID INT IDENTITY(1,1) PRIMARY KEY,
+    Name NVARCHAR(150) NOT NULL,
+    DirectionID INT NOT NULL,
+    StarRating INT CHECK (StarRating BETWEEN 1 AND 5),
+    ContactPhone NVARCHAR(20),
+    FOREIGN KEY (DirectionID) REFERENCES Directions(DirectionID)
+);
+
+-- 3. Сотрудники (ответственные за тур)
+CREATE TABLE Employees (
+    EmployeeID INT IDENTITY(1,1) PRIMARY KEY,
+    FullName NVARCHAR(150) NOT NULL,
+    Position NVARCHAR(100) NOT NULL,
+    Phone NVARCHAR(20)
+);
+
+-- 4. Туры
+CREATE TABLE Tours (
+    TourID INT IDENTITY(1,1) PRIMARY KEY,
+    TourName NVARCHAR(200) NOT NULL,
+    DirectionID INT NOT NULL,
+    StartDate DATE NOT NULL,
+    EndDate DATE NOT NULL,
+    Status NVARCHAR(50) DEFAULT 'В разработке', -- В разработке, Активен, Завершён
+    ResponsiblePersonID INT NOT NULL,
+    FOREIGN KEY (DirectionID) REFERENCES Directions(DirectionID),
+    FOREIGN KEY (ResponsiblePersonID) REFERENCES Employees(EmployeeID),
+    CHECK (EndDate >= StartDate)
+);
+
+-- 5. Программа тура (мероприятия)
+CREATE TABLE TourPrograms (
+    ProgramID INT IDENTITY(1,1) PRIMARY KEY,
+    TourID INT NOT NULL,
+    DayNumber INT NOT NULL,
+    ActivityType NVARCHAR(50), -- культурная, деловая, развлекательная
+    Description NVARCHAR(500),
+    FOREIGN KEY (TourID) REFERENCES Tours(TourID) ON DELETE CASCADE
+);
+
+-- 6. Клиенты
+CREATE TABLE Clients (
+    ClientID INT IDENTITY(1,1) PRIMARY KEY,
+    LastName NVARCHAR(100) NOT NULL,
+    FirstName NVARCHAR(100) NOT NULL,
+    MiddleName NVARCHAR(100),
+    PassportData NVARCHAR(50) UNIQUE,
+    Phone NVARCHAR(20),
+    Email NVARCHAR(100)
+);
+
+-- 7. Путёвки
+CREATE TABLE Vouchers (
+    VoucherID INT IDENTITY(1,1) PRIMARY KEY,
+    ClientID INT NOT NULL,
+    TourID INT NOT NULL,
+    SaleDate DATE DEFAULT GETDATE(),
+    Price DECIMAL(12,2) NOT NULL,
+    FOREIGN KEY (ClientID) REFERENCES Clients(ClientID),
+    FOREIGN KEY (TourID) REFERENCES Tours(TourID)
+);
+
+-- 8. Отзывы и пожелания клиентов
+CREATE TABLE Feedbacks (
+    FeedbackID INT IDENTITY(1,1) PRIMARY KEY,
+    ClientID INT NOT NULL,
+    TourID INT NOT NULL,
+    FeedbackText NVARCHAR(1000),
+    Rating INT CHECK (Rating BETWEEN 1 AND 5),
+    FeedbackDate DATE DEFAULT GETDATE(),
+    FOREIGN KEY (ClientID) REFERENCES Clients(ClientID),
+    FOREIGN KEY (TourID) REFERENCES Tours(TourID)
+);
+
+-- 9. Отчёты от посредников (гостиницы, гиды)
+CREATE TABLE PartnerReports (
+    ReportID INT IDENTITY(1,1) PRIMARY KEY,
+    TourID INT NOT NULL,
+    PartnerType NVARCHAR(100), -- Отель, Гид, Транспортная компания
+    ReportDate DATE DEFAULT GETDATE(),
+    Comments NVARCHAR(500),
+    FOREIGN KEY (TourID) REFERENCES Tours(TourID)
+);
+
+-- 10. Бронирования мест в отелях
+CREATE TABLE HotelBookings (
+    BookingID INT IDENTITY(1,1) PRIMARY KEY,
+    TourID INT NOT NULL,
+    HotelID INT NOT NULL,
+    RoomCount INT NOT NULL,
+    CheckInDate DATE NOT NULL,
+    CheckOutDate DATE NOT NULL,
+    FOREIGN KEY (TourID) REFERENCES Tours(TourID),
+    FOREIGN KEY (HotelID) REFERENCES Hotels(HotelID)
+);
+
+-- 11. Билеты на переезд
+CREATE TABLE Tickets (
+    TicketID INT IDENTITY(1,1) PRIMARY KEY,
+    TourID INT NOT NULL,
+    TransportType NVARCHAR(50), -- самолёт, поезд, автобус
+    DeparturePoint NVARCHAR(200),
+    ArrivalPoint NVARCHAR(200),
+    DepartureDateTime DATETIME NOT NULL,
+    Price DECIMAL(10,2),
+    FOREIGN KEY (TourID) REFERENCES Tours(TourID)
+);
